@@ -2,6 +2,7 @@ package taskhandler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"task_service/src/internal/core/task"
 	taskservice "task_service/src/internal/usecase"
@@ -18,13 +19,20 @@ func NewTaskHandler(taskcase taskservice.TaskService) TaskHandler {
 }
 
 func (t *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
+	userId, ok := r.Context().Value("user_id").(int)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": "user not found in context"})
+		return
+	}
+	fmt.Println("user id=", userId)
 	var task task.Task
-
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 		return
 	}
+	task.AssignedBy = userId
 
 	createdTask, err := t.taskService.CreateTask(task)
 	if err != nil {
@@ -40,8 +48,13 @@ func (t *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
+	// userId, ok := r.Context().Value("user").(int)
+	// if !ok {
+	// 	w.WriteHeader(http.StatusUnauthorized)
+	// 	json.NewEncoder(w).Encode(map[string]interface{}{"error": "user not found in context"})
+	// 	return
+	// }
 	var task task.Task
-
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
@@ -61,7 +74,7 @@ func (t *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (t *TaskHandler) GetAll(w http.ResponseWriter, r *http.Request) {
+func (t *TaskHandler) GetMy(w http.ResponseWriter, r *http.Request) {
 	var allTask []task.Task
 	allTask, err := t.taskService.GetAllTask()
 	if err != nil {

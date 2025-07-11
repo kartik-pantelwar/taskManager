@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
+
 	taskhandler "task_service/src/internal/interfaces/input/api/rest/handler"
 	pb "task_service/src/internal/interfaces/input/grpc/generated"
 
@@ -32,7 +34,12 @@ func SessionAuthMiddleware(grpcClient pb.SessionValidatorClient) func(http.Handl
 			}
 
 			// &adding user_id to context for other operations
-			ctx := context.WithValue(r.Context(), "user_id", resp.UserId)
+			user_id, err := strconv.Atoi(resp.UserId)
+			if err != nil {
+				fmt.Printf("Invalid Format: %v", err)
+				return
+			}
+			ctx := context.WithValue(r.Context(), "user_id", user_id)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -40,12 +47,12 @@ func SessionAuthMiddleware(grpcClient pb.SessionValidatorClient) func(http.Handl
 
 func InitRoutes(taskHandler *taskhandler.TaskHandler, grpcClient pb.SessionValidatorClient) http.Handler {
 	router := chi.NewRouter()
-	router.Route("/task", func(r chi.Router) {
+	router.Route("/v1/tasks", func(r chi.Router) {
 		r.Use(SessionAuthMiddleware(grpcClient))
 		r.Post("/create", taskHandler.Create)
 		r.Put("/update", taskHandler.Update)
-		r.Get("/get/all", taskHandler.GetAll)
+		r.Get("/", taskHandler.GetMy)
 	})
-
+	//task assign krne se pehle ek /status api create krenge jo check kregi ki user available hai, ya nahi, agar available nhi hai, to notify kr dega
 	return router
 }
