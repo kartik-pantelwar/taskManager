@@ -21,9 +21,14 @@ func (t *TaskService) CreateTask(task task.Task) (task.Task, error) {
 func (t *TaskService) UpdateTask(task task.Task) (task.Task, error) {
 	newTask, err := t.taskRepo.UpdateOldTask(task)
 	return newTask, err
-} 
+}
 
-func (t *TaskService) GetAllTask()([]task.Task,error){
-	allTask,err :=t.taskRepo.GetAllTaskDb()
+func (t *TaskService) GetAllTask(user_id int) ([]task.Task, error) {
+	allTask, err := t.taskRepo.GetAllTaskDb(user_id)
 	return allTask, err
+}
+
+func (t *TaskService) DeleteTask(task task.Task) (task.Task, error) {
+	newTask, err := t.taskRepo.DeleteThisTask(task)
+	return newTask, err
 }

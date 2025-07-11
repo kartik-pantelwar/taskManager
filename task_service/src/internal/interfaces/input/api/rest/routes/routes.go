@@ -49,9 +49,10 @@ func InitRoutes(taskHandler *taskhandler.TaskHandler, grpcClient pb.SessionValid
 	router := chi.NewRouter()
 	router.Route("/v1/tasks", func(r chi.Router) {
 		r.Use(SessionAuthMiddleware(grpcClient))
-		r.Post("/create", taskHandler.Create)
-		r.Put("/update", taskHandler.Update)
-		r.Get("/", taskHandler.GetMy)
+		r.Post("/create", taskHandler.CreateHandler)
+		r.Put("/update", taskHandler.UpdateHandler)
+		r.Get("/", taskHandler.GetMyHandler)
+		r.Delete("/delete/{task-id}",taskHandler.DeleteHandler)
 	})
 	//task assign krne se pehle ek /status api create krenge jo check kregi ki user available hai, ya nahi, agar available nhi hai, to notify kr dega
 	return router
