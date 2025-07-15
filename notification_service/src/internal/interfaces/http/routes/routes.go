@@ -19,7 +19,7 @@ func InitRoutes(notificationHandler *handler.NotificationHandler) http.Handler {
 	// Notification routes
 	router.Route("/v1/notifications", func(r chi.Router) {
 		r.Get("/recent", notificationHandler.GetRecentNotification)
-		r.Get("/user/{userID}", notificationHandler.GetUserNotifications)
+		r.Get("/user", notificationHandler.GetUserNotifications)
 
 	})
 

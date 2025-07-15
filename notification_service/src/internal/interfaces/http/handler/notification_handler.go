@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"notificationservice/src/internal/usecase"
 	"strconv"
-
-	"github.com/go-chi/chi/v5"
 )
 
 type NotificationHandler struct {
@@ -47,26 +45,16 @@ func (h *NotificationHandler) GetRecentNotification(w http.ResponseWriter, r *ht
 }
 
 func (h *NotificationHandler) GetUserNotifications(w http.ResponseWriter, r *http.Request) {
-	userIDStr := chi.URLParam(r, "userID")
-	userID, err := strconv.Atoi(userIDStr)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error": "invalid user ID",
-		})
-		return
-	}
-
 	// Get limit from query parameter
 	limitStr := r.URL.Query().Get("limit")
-	limit := 20 // default
+	limit := 50 // default for all notifications
 	if limitStr != "" {
 		if parsedLimit, err := strconv.Atoi(limitStr); err == nil {
 			limit = parsedLimit
 		}
 	}
 
-	notifications, err := h.notificationUseCase.GetUserNotifications(r.Context(), userID, limit)
+	notifications, err := h.notificationUseCase.GetAllNotifications(r.Context(), limit)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{

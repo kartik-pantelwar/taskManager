@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS tasks(
     task_status stat DEFAULT 'todo',
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     deadline TIMESTAMPTZ NOT NULL,
-    priority INT NOT NULL CHECK(priority>=0 AND priority<=10)
+    priority INT NOT NULL CHECK(priority>=0 AND priority<=10),
+    CHECK (assigned_by!=assigned_to)
 );
 

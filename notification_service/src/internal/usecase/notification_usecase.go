@@ -45,14 +45,6 @@ func (uc *NotificationUseCase) ProcessTaskEvent(ctx context.Context, event task.
 	return nil
 }
 
-func (uc *NotificationUseCase) GetUserNotifications(ctx context.Context, userID int, limit int) ([]notification.Notification, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 20 // Default limit
-	}
-
-	return uc.notificationRepo.GetUserNotifications(ctx, userID, limit)
-}
-
 func (uc *NotificationUseCase) GetMostRecentNotification(ctx context.Context) (*notification.Notification, error) {
 	// Get the most recent notification globally
 	recentNotification, err := uc.notificationRepo.GetMostRecentNotification(ctx)
@@ -61,6 +53,14 @@ func (uc *NotificationUseCase) GetMostRecentNotification(ctx context.Context) (*
 	}
 
 	return recentNotification, nil
+}
+
+func (uc *NotificationUseCase) GetAllNotifications(ctx context.Context, limit int) ([]notification.Notification, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50 // Default limit
+	}
+
+	return uc.notificationRepo.GetAllNotifications(ctx, limit)
 }
 
 func (uc *NotificationUseCase) generateMessage(action, taskName string, assignedBy, assignedTo int) string {
