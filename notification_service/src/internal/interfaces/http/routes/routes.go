@@ -16,15 +16,11 @@ func InitRoutes(notificationHandler *handler.NotificationHandler) http.Handler {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.RealIP)
 
-	// Health check
-	router.Get("/health", notificationHandler.HealthCheck)
-
 	// Notification routes
-	router.Route("/api/v1", func(r chi.Router) {
-		r.Route("/notifications", func(r chi.Router) {
-			r.Get("/recent", notificationHandler.GetRecentNotification)
-			r.Get("/user/{userID}", notificationHandler.GetUserNotifications)
-		})
+	router.Route("/v1/notifications", func(r chi.Router) {
+		r.Get("/recent", notificationHandler.GetRecentNotification)
+		r.Get("/user/{userID}", notificationHandler.GetUserNotifications)
+
 	})
 
 	return router

@@ -1,7 +1,9 @@
 package userservice
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"time"
 	"user_service/src/internal/adaptors/persistance"
 	"user_service/src/internal/core/session"
@@ -22,9 +24,12 @@ func NewUserService(userRepo persistance.UserRepo, sessionRepo persistance.Sessi
 
 // registration function definition
 func (u *UserService) RegisterUser(user user.UserRegister) (user.UserResponse, error) {
-	//^ checking if user is already registered
 	newUser, err := u.userRepo.CreateUser(user)
-	return newUser, err
+	if err != nil {
+		log.Printf("Error: %v", err)
+		return newUser, errors.New("Something Went Wrong!")
+	}
+	return newUser, nil
 }
 
 type LoginResponse struct {
@@ -91,7 +96,11 @@ func (u *UserService) GetJwtFromSession(sess string) (string, time.Time, error) 
 
 func (u *UserService) GetUserByID(id int) (user.UserProfile, error) {
 	newUser, err := u.userRepo.GetUserByID(id)
-	return newUser, err
+	if err != nil {
+		log.Println("error", err)
+		return user.UserProfile{}, errors.New("something went wrong")
+	}
+	return newUser, nil
 }
 
 func (u *UserService) LogoutUser(id int) error {

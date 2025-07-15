@@ -2,7 +2,7 @@ package errorhandling
 
 import (
 	"net/http"
-	pkgresponse "user_service/src/pkg/response"
+	pkgresponse "notificationservice/src/pkg/response"
 )
 
 func HandleError(w http.ResponseWriter, msg string, statusCode int) {

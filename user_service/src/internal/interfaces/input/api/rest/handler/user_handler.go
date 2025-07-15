@@ -25,13 +25,13 @@ func (u *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var newUser user.UserRegister
 	var createdUser user.UserResponse
 	if err := json.NewDecoder(r.Body).Decode(&newUser); err != nil {
-		errorhandling.HandleError(w, http.StatusBadRequest, err)
+		errorhandling.HandleError(w, "Wrong Format Data", http.StatusBadRequest)
 		return
 	}
 
 	createdUser, err := u.userService.RegisterUser(newUser)
 	if err != nil {
-		errorhandling.HandleError(w, http.StatusInternalServerError, err)
+		errorhandling.HandleError(w, "Unable to Register User", http.StatusInternalServerError)
 		return
 	}
 	// createdUser = registeredUser
@@ -54,7 +54,7 @@ func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	loginResponse, err := u.userService.LoginUser(loginUser)
 	if err != nil {
-		errorhandling.HandleError(w, http.StatusBadRequest, err)
+		errorhandling.HandleError(w, "Unable to Login", http.StatusBadRequest)
 		return
 	}
 
@@ -181,7 +181,7 @@ func (u *UserHandler) LogOut(w http.ResponseWriter, r *http.Request) {
 func (u *UserHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	allUsers, err := u.userService.GetAllUsers()
 	if err != nil {
-		errorhandling.HandleError(w, http.StatusInternalServerError, err)
+		errorhandling.HandleError(w, "Unable to Get Users", http.StatusInternalServerError)
 	}
 	response := pkgresponse.StandardResponse{
 		Status:  "SUCCESS",

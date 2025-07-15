@@ -7,9 +7,9 @@ import (
 	"os"
 	"task_service/src/internal/adaptors/persistance"
 	redisclient "task_service/src/internal/adaptors/redis"
+	"task_service/src/internal/adaptors/redis/notification"
 	client "task_service/src/internal/adaptors/user_grpc_client"
 	"task_service/src/internal/config"
-	"task_service/src/internal/adaptors/redis/notification"
 	taskhandler "task_service/src/internal/interfaces/input/api/rest/handler"
 	"task_service/src/internal/interfaces/input/api/rest/routes"
 	task "task_service/src/internal/usecase"
@@ -65,11 +65,7 @@ func main() {
 	taskService := task.NewTaskService(taskRepo, notificationService, grpcClient) //added notificationService and grpcClient
 	taskHandler := taskhandler.NewTaskHandler(taskService)
 
-	//notification handler - now calls notification service via HTTP
-	notificationServiceURL := fmt.Sprintf("http://localhost:%s", configP.NOTIFICATION_PORT) // notification service URL
-	notificationHandler := taskhandler.NewNotificationHandler(notificationServiceURL)
-
-	router := routes.InitRoutes(&taskHandler, notificationHandler, grpcClient)
+	router := routes.InitRoutes(&taskHandler, grpcClient)
 
 	// server starting
 	fmt.Printf("Starting server on port %s\n", configP.APP_PORT)

@@ -43,7 +43,7 @@ func SessionAuthMiddleware(grpcClient pb.SessionValidatorClient) func(http.Handl
 	}
 }
 
-func InitRoutes(taskHandler *taskhandler.TaskHandler, notificationHandler *taskhandler.NotificationHandler, grpcClient pb.SessionValidatorClient) http.Handler {
+func InitRoutes(taskHandler *taskhandler.TaskHandler, grpcClient pb.SessionValidatorClient) http.Handler {
 	router := chi.NewRouter()
 
 	router.Route("/v1/tasks", func(r chi.Router) {
@@ -53,12 +53,6 @@ func InitRoutes(taskHandler *taskhandler.TaskHandler, notificationHandler *taskh
 		r.Delete("/{id}", taskHandler.Delete)
 		r.Get("/my", taskHandler.GetMy)
 		r.Post("/status", taskHandler.GetStatus)
-	})
-
-	// Notification
-	router.Route("/v1/notifications", func(r chi.Router) {
-		r.Use(SessionAuthMiddleware(grpcClient))
-		r.Get("/my", notificationHandler.GetUserNotifications)
 	})
 
 	return router

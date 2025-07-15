@@ -81,11 +81,3 @@ func (h *NotificationHandler) GetUserNotifications(w http.ResponseWriter, r *htt
 		"count":         len(notifications),
 	})
 }
-
-func (h *NotificationHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":  "ok",
-		"service": "notification-service",
-	})
-}
