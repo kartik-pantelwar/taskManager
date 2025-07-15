@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"notificationservice/src/internal/adaptors/redis"
-	"notificationservice/src/internal/adaptors/repository"
 	"notificationservice/src/internal/config"
 	"notificationservice/src/internal/interfaces/http/handler"
 	"notificationservice/src/internal/interfaces/http/routes"
@@ -30,10 +29,10 @@ func main() {
 	defer redisClient.Close()
 	log.Println("Connected to Redis")
 
-	notificationRepo := repository.NewNotificationRepository(redisClient.GetClient())
-	notificationUseCase := usecase.NewNotificationUseCase(notificationRepo)
+	// Use Redis directly instead of repository
+	notificationUseCase := usecase.NewNotificationUseCase(redisClient)
 	notificationHandler := handler.NewNotificationHandler(notificationUseCase)
-	eventSubscriber := subscriber.NewEventSubscriber(notificationRepo, notificationUseCase)
+	eventSubscriber := subscriber.NewEventSubscriber(redisClient, notificationUseCase)
 
 	// Start event subscriber in a goroutine
 	channel := "task_events" // ^Channel Name of Subscribed Channel

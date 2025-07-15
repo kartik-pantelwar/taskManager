@@ -12,7 +12,6 @@ func InitRoutes(notificationHandler *handler.NotificationHandler) http.Handler {
 	router := chi.NewRouter()
 
 	// Middleware
-	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.RealIP)
 

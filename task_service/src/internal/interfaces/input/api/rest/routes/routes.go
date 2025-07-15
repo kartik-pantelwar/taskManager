@@ -50,7 +50,7 @@ func InitRoutes(taskHandler *taskhandler.TaskHandler, grpcClient pb.SessionValid
 		r.Use(SessionAuthMiddleware(grpcClient))
 		r.Post("/create", taskHandler.Create)
 		r.Put("/update", taskHandler.Update)
-		r.Delete("/{id}", taskHandler.Delete)
+		r.Delete("/delete/{id}", taskHandler.Delete)
 		r.Get("/my", taskHandler.GetMy)
 		r.Post("/status", taskHandler.GetStatus)
 	})

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"notificationservice/src/internal/config"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -40,4 +41,38 @@ func (r *RedisClient) GetClient() *redis.Client {
 
 func (r *RedisClient) Close() error {
 	return r.client.Close()
+}
+
+// Simple notification functions
+func (r *RedisClient) StoreNotification(ctx context.Context, key string, data []byte) error {
+	return r.client.Set(ctx, key, data, 24*time.Hour).Err()
+}
+
+func (r *RedisClient) GetNotification(ctx context.Context, key string) ([]byte, error) {
+	return r.client.Get(ctx, key).Bytes()
+}
+
+func (r *RedisClient) GetAllNotificationKeys(ctx context.Context) ([]string, error) {
+	var allKeys []string
+	cursor := uint64(0)
+
+	for {
+		keys, newCursor, err := r.client.Scan(ctx, cursor, "notification:*", 100).Result()
+		if err != nil {
+			return nil, err
+		}
+
+		allKeys = append(allKeys, keys...)
+		cursor = newCursor
+
+		if cursor == 0 {
+			break
+		}
+	}
+
+	return allKeys, nil
+}
+
+func (r *RedisClient) Subscribe(ctx context.Context, channel string) *redis.PubSub {
+	return r.client.Subscribe(ctx, channel)
 }

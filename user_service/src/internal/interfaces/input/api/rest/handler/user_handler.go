@@ -3,6 +3,7 @@ package userhandler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 	"user_service/src/internal/core/user"
 	userservice "user_service/src/internal/usecase"
@@ -20,7 +21,6 @@ func NewUserHandler(usecase userservice.UserService) UserHandler {
 	}
 }
 
-// todo
 func (u *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var newUser user.UserRegister
 	var createdUser user.UserResponse
@@ -84,6 +84,7 @@ func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Message: "Successful Login",
 	}
 	w.Header().Set("x-user", loginResponse.FounUser.Username)
+	w.Header().Set("x-userId", strconv.Itoa(loginResponse.FounUser.Uid))
 	pkgresponse.WriteResponse(w, http.StatusOK, response)
 }
 
@@ -106,6 +107,7 @@ func (u *UserHandler) Profile(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("x-user", registeredUser.Username)
+	w.Header().Set("x-userId", strconv.Itoa(registeredUser.Uid))
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(registeredUser)
 }

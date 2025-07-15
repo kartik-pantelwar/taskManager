@@ -51,12 +51,12 @@ func (t *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"task":  createdTask,
-		"count": count+1,
+		"count": count + 1,
 	})
 }
 
 func (t *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
-	// Your original code (back to int)
+
 	userId, ok := r.Context().Value("user_id").(int)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -90,7 +90,6 @@ func (t *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *TaskHandler) GetMy(w http.ResponseWriter, r *http.Request) {
-	// Your original code (back to int)
 	userId, ok := r.Context().Value("user_id").(int)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -113,7 +112,6 @@ func (t *TaskHandler) GetMy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	// Your original code (back to int)
 	userId, ok := r.Context().Value("user_id").(int)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -121,7 +119,6 @@ func (t *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Your original URL parameter extraction
 	taskIDStr := chi.URLParam(r, "id")
 	taskID, err := strconv.Atoi(taskIDStr)
 	if err != nil {

@@ -4,19 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"notificationservice/src/internal/adaptors/repository"
+	"notificationservice/src/internal/adaptors/redis"
 	"notificationservice/src/internal/core/task"
 	"notificationservice/src/internal/usecase"
 )
 
 type EventSubscriber struct {
-	notificationRepo    *repository.NotificationRepository
+	redisClient         *redis.RedisClient
 	notificationUseCase *usecase.NotificationUseCase
 }
 
-func NewEventSubscriber(repo *repository.NotificationRepository, uc *usecase.NotificationUseCase) *EventSubscriber {
+func NewEventSubscriber(redisClient *redis.RedisClient, uc *usecase.NotificationUseCase) *EventSubscriber {
 	return &EventSubscriber{
-		notificationRepo:    repo,
+		redisClient:         redisClient,
 		notificationUseCase: uc,
 	}
 }
@@ -25,7 +25,7 @@ func (s *EventSubscriber) StartListening(ctx context.Context, channel string) {
 	log.Println("Starting notification service event listener...")
 
 	// Subscribe to task events
-	pubsub := s.notificationRepo.Subscribe(ctx, channel)
+	pubsub := s.redisClient.Subscribe(ctx, channel)
 	defer pubsub.Close()
 
 	for {
