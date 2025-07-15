@@ -119,7 +119,7 @@ func matchSessionToken(id string, tokenHash string) error {
 
 func (u *UserService) GetAllUsers() ([]user.GetUserResponse, error) {
 	allUsers, err := u.userRepo.GetUsers()
-	if err!=nil{
+	if err != nil {
 		return []user.GetUserResponse{}, err
 	}
 	return allUsers, nil
