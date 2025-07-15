@@ -6,6 +6,8 @@ import (
 	"time"
 	"user_service/src/internal/core/user"
 	userservice "user_service/src/internal/usecase"
+	errorhandling "user_service/src/pkg/error_handling"
+	pkgresponse "user_service/src/pkg/response"
 )
 
 type UserHandler struct {
@@ -18,40 +20,41 @@ func NewUserHandler(usecase userservice.UserService) UserHandler {
 	}
 }
 
+// todo
 func (u *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
-	var user user.User
-
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+	var newUser user.UserRegister
+	var createdUser user.UserResponse
+	if err := json.NewDecoder(r.Body).Decode(&newUser); err != nil {
+		errorhandling.HandleError(w, http.StatusBadRequest, err)
 		return
 	}
 
-	registeredUser, err := u.userService.RegisterUser(user)
-
+	createdUser, err := u.userService.RegisterUser(newUser)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		errorhandling.HandleError(w, http.StatusInternalServerError, err)
 		return
 	}
-	user = registeredUser
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	// createdUser = registeredUser
+	response := pkgresponse.StandardResponse{
+		Status:  "SUCCESS",
+		Message: "User Registered Successfully",
+		Data:    createdUser,
+	}
+	pkgresponse.WriteResponse(w, http.StatusOK, response)
 }
 
 func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var requestUser user.User
-	if err := json.NewDecoder(r.Body).Decode(&requestUser); err != nil {
+	// var requestUser user.User
+	var loginUser user.UserLogin
+	if err := json.NewDecoder(r.Body).Decode(&loginUser); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 		return
 	}
 
-	loginResponse, err := u.userService.LoginUser(requestUser)
+	loginResponse, err := u.userService.LoginUser(loginUser)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		errorhandling.HandleError(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -76,10 +79,12 @@ func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &atCookie)
 	http.SetCookie(w, &sessCookie)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("x-user", loginResponse.FounUser.Email)
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "successful login"})
+	response := pkgresponse.StandardResponse{
+		Status:  "SUCCESS",
+		Message: "Successful Login",
+	}
+	w.Header().Set("x-user", loginResponse.FounUser.Username)
+	pkgresponse.WriteResponse(w, http.StatusOK, response)
 }
 
 func (u *UserHandler) Profile(w http.ResponseWriter, r *http.Request) {
@@ -173,3 +178,15 @@ func (u *UserHandler) LogOut(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Successful Logout"})
 }
 
+func (u *UserHandler) GetAll(w http.ResponseWriter, r *http.Request) {
+	allUsers, err := u.userService.GetAllUsers()
+	if err != nil {
+		errorhandling.HandleError(w, http.StatusInternalServerError, err)
+	}
+	response := pkgresponse.StandardResponse{
+		Status:  "SUCCESS",
+		Message: "Here is the data of all users",
+		Data:    allUsers,
+	}
+	pkgresponse.WriteResponse(w, http.StatusOK, response)
+}

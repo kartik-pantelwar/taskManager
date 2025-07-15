@@ -19,10 +19,11 @@ func InitRoutes(
 		r.Post("/refresh", userHandler.Refresh)
 	})
 
-	router.Route("/user", func(r chi.Router) {
+	router.Route("/users", func(r chi.Router) {
 		r.Use(middleware.Authenticate)
 		r.Get("/profile", userHandler.Profile)
 		r.Post("/logout", userHandler.LogOut)
+		r.Get("/",userHandler.GetAll)
 	})
 
 	return router

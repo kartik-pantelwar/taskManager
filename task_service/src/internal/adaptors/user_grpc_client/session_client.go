@@ -1,7 +1,7 @@
 package client
 
 import (
-	pb "task_service/src/internal/interfaces/input/grpc/generated"
+	pb "task_service/src/internal/interfaces/input/grpc/generated/generated"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

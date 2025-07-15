@@ -1,9 +1,8 @@
-package taskhandler
+package handler
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"task_service/src/internal/core/task"
@@ -22,100 +21,141 @@ func NewTaskHandler(taskcase taskservice.TaskService) TaskHandler {
 	}
 }
 
-func (t *TaskHandler) CreateHandler(w http.ResponseWriter, r *http.Request) {
+func (t *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("user_id").(int)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]interface{}{"error": "user not found in context"})
 		return
 	}
-	fmt.Println("user id=", userId)
-	var task task.Task
-	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
+
+	var taskData task.Task
+	err := json.NewDecoder(r.Body).Decode(&taskData)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": "invalid request body"})
 		return
 	}
-	task.AssignedBy = userId
 
-	createdTask, err := t.taskService.CreateTask(task)
+	// Set the assigned_by field to the current user
+	taskData.AssignedBy = userId
+
+	// ONLY CHANGE: Pass userId to CreateTask for notifications
+	createdTask, count, err := t.taskService.CreateTask(context.Background(), taskData, userId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": err.Error()})
 		return
 	}
-	task = createdTask
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(task)
 
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"task":  createdTask,
+		"count": count+1,
+	})
 }
 
-func (t *TaskHandler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
+func (t *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
+	// Your original code (back to int)
 	userId, ok := r.Context().Value("user_id").(int)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]interface{}{"error": "user not found in context"})
 		return
 	}
-	var task task.Task
-	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
+
+	var taskData task.Task
+	err := json.NewDecoder(r.Body).Decode(&taskData)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": "invalid request body"})
 		return
 	}
-	task.AssignedBy = userId
-	createdTask, err := t.taskService.UpdateTask(task)
+
+	// Set the assigned_by field to verify authorization
+	taskData.AssignedBy = userId
+
+	// ONLY CHANGE: Pass userId to UpdateTask for notifications
+	updatedTask, err := t.taskService.UpdateTask(context.Background(), taskData, userId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": err.Error()})
 		return
 	}
-	task = createdTask
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(task)
 
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"task": updatedTask,
+	})
 }
 
-func (t *TaskHandler) GetMyHandler(w http.ResponseWriter, r *http.Request) {
+func (t *TaskHandler) GetMy(w http.ResponseWriter, r *http.Request) {
+	// Your original code (back to int)
 	userId, ok := r.Context().Value("user_id").(int)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]interface{}{"error": "user not found in context"})
 		return
 	}
-	myTask, err := t.taskService.GetAllTask(userId)
+
+	tasks, err := t.taskService.GetTasksByUserID(userId)
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": err.Error()})
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+
 	w.Header().Set("Content-Type", "application/json")
-	for _, i := range myTask {
-		json.NewEncoder(w).Encode(i)
-	}
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"tasks": tasks,
+		"count": len(tasks),
+	})
 }
 
-func (t *TaskHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
-	task_idStr := chi.URLParam(r, "task-id")
-	task_id, err := strconv.Atoi(task_idStr)
-	if err != nil {
-		log.Fatalf("Failed to get Task ID: %v", err)
-	}
+func (t *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	// Your original code (back to int)
 	userId, ok := r.Context().Value("user_id").(int)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]interface{}{"error": "user not found in context"})
 		return
 	}
-	task := task.Task{Id: task_id, AssignedBy: userId}
-	deletedTask, err := t.taskService.DeleteTask(task)
+
+	// Your original URL parameter extraction
+	taskIDStr := chi.URLParam(r, "id")
+	taskID, err := strconv.Atoi(taskIDStr)
 	if err != nil {
-		log.Fatalf("Failed to delete task: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": "invalid task ID"})
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(deletedTask)
 
+	// ONLY CHANGE: Pass userId to DeleteTask for notifications
+	err = t.taskService.DeleteTask(context.Background(), taskID, userId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": err.Error()})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Task deleted successfully",
+	})
+}
+
+func (t *TaskHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
+	var taskStatus task.TaskStatus
+	json.NewDecoder(r.Body).Decode(&taskStatus)
+	taskCount, newStatus, err := t.taskService.GetUserTasks(taskStatus)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": "Failed to get tasks status"})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"No. Of Tasks": taskCount,
+	})
+	json.NewEncoder(w).Encode(newStatus)
 }

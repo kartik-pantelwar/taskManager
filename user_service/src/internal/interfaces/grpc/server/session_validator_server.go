@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 	"user_service/src/internal/adaptors/persistance"
-	pb "user_service/src/internal/interfaces/grpc/generated"
+	pb "user_service/src/internal/interfaces/grpc/generated/generated"
 )
 
 type SessionValidatorServer struct {
@@ -53,5 +53,36 @@ func (s *SessionValidatorServer) ValidateSession(ctx context.Context, req *pb.Va
 		Valid:  true,
 		UserId: strconv.Itoa(session.Uid),
 		Error:  "",
+	}, nil
+}
+
+func (s *SessionValidatorServer) ValidateUser(ctx context.Context, req *pb.ValidateUserRequest) (*pb.ValidateUserResponse, error) {
+	userIDStr := req.GetUserId()
+
+	// Check if user ID is empty
+	if userIDStr == "" {
+		return &pb.ValidateUserResponse{
+			Status: false,
+		}, nil
+	}
+
+	// Convert user ID from string to int
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		return &pb.ValidateUserResponse{
+			Status: false,
+		}, nil
+	}
+
+	// Check if user exists in database
+	exists, err := s.sessionRepo.UserExists(userID)
+	if err != nil {
+		return &pb.ValidateUserResponse{
+			Status: false,
+		}, nil
+	}
+
+	return &pb.ValidateUserResponse{
+		Status: exists,
 	}, nil
 }

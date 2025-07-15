@@ -1,12 +1,12 @@
 package userservice
 
 import (
+	"fmt"
+	"time"
 	"user_service/src/internal/adaptors/persistance"
 	"user_service/src/internal/core/session"
 	"user_service/src/internal/core/user"
 	"user_service/src/pkg/utilities"
-	"fmt"
-	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -16,13 +16,12 @@ type UserService struct {
 	sessionRepo persistance.SessionRepo
 }
 
-
 func NewUserService(userRepo persistance.UserRepo, sessionRepo persistance.SessionRepo) UserService {
 	return UserService{userRepo: userRepo, sessionRepo: sessionRepo}
 }
 
 // registration function definition
-func (u *UserService) RegisterUser(user user.User) (user.User, error) {
+func (u *UserService) RegisterUser(user user.UserRegister) (user.UserResponse, error) {
 	//^ checking if user is already registered
 	newUser, err := u.userRepo.CreateUser(user)
 	return newUser, err
@@ -35,7 +34,7 @@ type LoginResponse struct {
 	Session     session.Session
 }
 
-func (u *UserService) LoginUser(requestUser user.User) (LoginResponse, error) {
+func (u *UserService) LoginUser(requestUser user.UserLogin) (LoginResponse, error) {
 	loginResponse := LoginResponse{}
 
 	foundUser, err := u.userRepo.GetUser(requestUser.Username)
@@ -44,7 +43,7 @@ func (u *UserService) LoginUser(requestUser user.User) (LoginResponse, error) {
 	}
 
 	loginResponse.FounUser = foundUser
-	if err := matchPassword(foundUser, requestUser.Password); err != nil {
+	if err := matchPassword(requestUser, foundUser.Password); err != nil {
 		return loginResponse, fmt.Errorf("invalid password")
 	}
 	tokenString, tokenExpire, err := utilities.GenerateJWT(foundUser.Uid)
@@ -90,7 +89,7 @@ func (u *UserService) GetJwtFromSession(sess string) (string, time.Time, error) 
 	return tokenString, tokenExpire, nil
 }
 
-func (u *UserService) GetUserByID(id int) (user.User, error) {
+func (u *UserService) GetUserByID(id int) (user.UserProfile, error) {
 	newUser, err := u.userRepo.GetUserByID(id)
 	return newUser, err
 }
@@ -100,10 +99,11 @@ func (u *UserService) LogoutUser(id int) error {
 	return err
 }
 
-func matchPassword(user user.User, password string) error {
-	err := utilities.CheckPassword(user.Password, password)
+func matchPassword(user user.UserLogin, password string) error {
+	// !error here
+	err := utilities.CheckPassword(password, user.Password)
 	if err != nil {
-		return fmt.Errorf("unable to match password: %w", err)
+		return fmt.Errorf("unable to match password: %v", err)
 	}
 
 	return nil
@@ -115,4 +115,12 @@ func matchSessionToken(id string, tokenHash string) error {
 		fmt.Println(err, "Unable to Match Password")
 	}
 	return nil
+}
+
+func (u *UserService) GetAllUsers() ([]user.GetUserResponse, error) {
+	allUsers, err := u.userRepo.GetUsers()
+	if err!=nil{
+		return []user.GetUserResponse{}, err
+	}
+	return allUsers, nil
 }

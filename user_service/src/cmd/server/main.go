@@ -8,7 +8,7 @@ import (
 	"os"
 	"user_service/src/internal/adaptors/persistance"
 	"user_service/src/internal/config"
-	pb "user_service/src/internal/interfaces/grpc/generated"
+	pb "user_service/src/internal/interfaces/grpc/generated/generated"
 	grpcserver "user_service/src/internal/interfaces/grpc/server"
 	userhandler "user_service/src/internal/interfaces/input/api/rest/handler"
 	"user_service/src/internal/interfaces/input/api/rest/routes"
@@ -24,7 +24,6 @@ func main() {
 		log.Fatalf("Failed to connect to Database: %v", err)
 	}
 	fmt.Println("Connected to database")
-
 	cwd, err := os.Getwd()
 	if err != nil {
 		log.Fatalf("failed to get current working directory %v", err)

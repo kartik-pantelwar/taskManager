@@ -7,6 +7,7 @@ option go_package = "./generated";
 
 service SessionValidator {
   rpc ValidateSession(ValidateSessionRequest) returns (ValidateSessionResponse);
+  rpc ValidateUser(ValidateUserRequest) returns (ValidateUserResponse);
 }
 
 message ValidateSessionRequest {
@@ -17,4 +18,12 @@ message ValidateSessionResponse {
   bool valid = 1;
   string user_id = 2;
   string error = 3;
+}
+
+message ValidateUserRequest {
+  string user_id =1;
+}
+
+message ValidateUserResponse{
+  bool status = 1;
 }

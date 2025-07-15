@@ -1,4 +1,4 @@
--- CREATE TYPE stat as ENUM('todo','inProgress','completed'); 
+CREATE TYPE stat as ENUM('todo','inProgress','completed'); 
 
 
 CREATE TABLE IF NOT EXISTS tasks(

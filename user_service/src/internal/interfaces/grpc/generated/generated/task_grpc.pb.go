@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	SessionValidator_ValidateSession_FullMethodName = "/session.SessionValidator/ValidateSession"
+	SessionValidator_ValidateUser_FullMethodName    = "/session.SessionValidator/ValidateUser"
 )
 
 // SessionValidatorClient is the client API for SessionValidator service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SessionValidatorClient interface {
 	ValidateSession(ctx context.Context, in *ValidateSessionRequest, opts ...grpc.CallOption) (*ValidateSessionResponse, error)
+	ValidateUser(ctx context.Context, in *ValidateUserRequest, opts ...grpc.CallOption) (*ValidateUserResponse, error)
 }
 
 type sessionValidatorClient struct {
@@ -47,11 +49,22 @@ func (c *sessionValidatorClient) ValidateSession(ctx context.Context, in *Valida
 	return out, nil
 }
 
+func (c *sessionValidatorClient) ValidateUser(ctx context.Context, in *ValidateUserRequest, opts ...grpc.CallOption) (*ValidateUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ValidateUserResponse)
+	err := c.cc.Invoke(ctx, SessionValidator_ValidateUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SessionValidatorServer is the server API for SessionValidator service.
 // All implementations must embed UnimplementedSessionValidatorServer
 // for forward compatibility.
 type SessionValidatorServer interface {
 	ValidateSession(context.Context, *ValidateSessionRequest) (*ValidateSessionResponse, error)
+	ValidateUser(context.Context, *ValidateUserRequest) (*ValidateUserResponse, error)
 	mustEmbedUnimplementedSessionValidatorServer()
 }
 
@@ -64,6 +77,9 @@ type UnimplementedSessionValidatorServer struct{}
 
 func (UnimplementedSessionValidatorServer) ValidateSession(context.Context, *ValidateSessionRequest) (*ValidateSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ValidateSession not implemented")
+}
+func (UnimplementedSessionValidatorServer) ValidateUser(context.Context, *ValidateUserRequest) (*ValidateUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateUser not implemented")
 }
 func (UnimplementedSessionValidatorServer) mustEmbedUnimplementedSessionValidatorServer() {}
 func (UnimplementedSessionValidatorServer) testEmbeddedByValue()                          {}
@@ -104,6 +120,24 @@ func _SessionValidator_ValidateSession_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SessionValidator_ValidateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ValidateUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionValidatorServer).ValidateUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionValidator_ValidateUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionValidatorServer).ValidateUser(ctx, req.(*ValidateUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SessionValidator_ServiceDesc is the grpc.ServiceDesc for SessionValidator service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +148,10 @@ var SessionValidator_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ValidateSession",
 			Handler:    _SessionValidator_ValidateSession_Handler,
+		},
+		{
+			MethodName: "ValidateUser",
+			Handler:    _SessionValidator_ValidateUser_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

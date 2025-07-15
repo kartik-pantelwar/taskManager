@@ -1,6 +1,7 @@
 package persistance
 
 import (
+	"fmt"
 	"task_service/src/internal/core/task"
 )
 
@@ -14,16 +15,35 @@ func NewTaskRepo(d *Database) TaskRepo {
 
 var emptyTask task.Task
 
-func (t *TaskRepo) CreateNewTask(task task.Task) (task.Task, error) {
+func (t *TaskRepo) CreateNewTask(task task.Task) (task.Task, int, error) {
 	var id int
-	query := `insert into tasks(name,assigned_to,description,task_status,priority,assigned_by,deadline) values($1,$2,$3,$4,$5,$6,$7) returning id`
-	//todo: Empty task_status part can be handled
-	err := t.db.db.QueryRow(query, task.Name, task.AssignedTo, task.Description, task.TaskStatus, task.Priority, task.AssignedBy, task.Deadline).Scan(&id)
+	var count int
+	tx, err := t.db.db.Begin()
 	if err != nil {
-		return emptyTask, err
+		return emptyTask, count, err
 	}
+	defer tx.Rollback()
+	query := `select count(*) from tasks where assigned_to=$1 and created_at < current_timestamp and current_timestamp < deadline`
+	err = tx.QueryRow(query, task.AssignedTo).Scan(&count)
+	if err != nil {
+		return emptyTask, count, err
+	}
+	fmt.Println("count = ", count)
+	if count >= 3 {
+		return emptyTask, count, fmt.Errorf("User Already have more than 3 tasks within the deadline")
+	}
+	query = `insert into tasks(name,assigned_to,description,task_status,priority,assigned_by,deadline) values($1,$2,$3,$4,$5,$6,$7) returning id`
+	err = tx.QueryRow(query, task.Name, task.AssignedTo, task.Description, task.TaskStatus, task.Priority, task.AssignedBy, task.Deadline).Scan(&id)
+	if err != nil {
+		return emptyTask, count, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return emptyTask, count, err
+	}
+
 	task.Id = id
-	return task, nil
+	return task, count, nil
 }
 
 func (t *TaskRepo) UpdateOldTask(task1 task.Task) (task.Task, error) {
@@ -101,4 +121,115 @@ func (t *TaskRepo) DeleteThisTask(task1 task.Task) (task.Task, error) {
 		return emptyTask, err
 	}
 	return deleleted, nil
+}
+
+// Get task by ID for notifications
+func (t *TaskRepo) GetTaskByID(taskID int) (task.Task, error) {
+	var taskData task.Task
+	query := `SELECT id, name, assigned_to, description, task_status, created_at, priority, assigned_by, deadline 
+			  FROM tasks WHERE id = $1`
+
+	err := t.db.db.QueryRow(query, taskID).Scan(
+		&taskData.Id,
+		&taskData.Name,
+		&taskData.AssignedTo,
+		&taskData.Description,
+		&taskData.TaskStatus,
+		&taskData.CreatedAt,
+		&taskData.Priority,
+		&taskData.AssignedBy,
+		&taskData.Deadline,
+	)
+
+	if err != nil {
+		return task.Task{}, fmt.Errorf("task not found: %v", err)
+	}
+
+	return taskData, nil
+}
+
+func (t *TaskRepo) DeleteTask(taskID int) error {
+	query := `DELETE FROM tasks WHERE id = $1`
+
+	result, err := t.db.db.Exec(query, taskID)
+	if err != nil {
+		return fmt.Errorf("failed to delete task: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %v", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("task not found")
+	}
+
+	return nil
+}
+
+// Get tasks by user ID (tasks assigned to or created by user)
+func (t *TaskRepo) GetTasksByUserID(userID int) ([]task.Task, error) {
+	query := `SELECT id, name, assigned_to, description, task_status, created_at, priority, assigned_by, deadline 
+			  FROM tasks WHERE assigned_to = $1 OR assigned_by = $1`
+
+	rows, err := t.db.db.Query(query, userID)
+	if err != nil {
+		return []task.Task{}, fmt.Errorf("failed to get user tasks: %v", err)
+	}
+	defer rows.Close()
+
+	var tasks []task.Task
+	for rows.Next() {
+		var t task.Task
+		err := rows.Scan(&t.Id, &t.Name, &t.AssignedTo, &t.Description, &t.TaskStatus, &t.CreatedAt, &t.Priority, &t.AssignedBy, &t.Deadline)
+		if err != nil {
+			return []task.Task{}, fmt.Errorf("failed to scan task: %v", err)
+		}
+		tasks = append(tasks, t)
+	}
+
+	if err = rows.Err(); err != nil {
+		return []task.Task{}, fmt.Errorf("error iterating over rows: %v", err)
+	}
+
+	return tasks, nil
+}
+
+// Get all tasks (without user filtering)
+func (t *TaskRepo) GetAllTask() ([]task.Task, error) {
+	query := `SELECT id, name, assigned_to, description, task_status, created_at, priority, assigned_by, deadline 
+			  FROM tasks ORDER BY created_at DESC`
+
+	rows, err := t.db.db.Query(query)
+	if err != nil {
+		return []task.Task{}, fmt.Errorf("failed to get all tasks: %v", err)
+	}
+	defer rows.Close()
+
+	var tasks []task.Task
+	for rows.Next() {
+		var t task.Task
+		err := rows.Scan(&t.Id, &t.Name, &t.AssignedTo, &t.Description, &t.TaskStatus, &t.CreatedAt, &t.Priority, &t.AssignedBy, &t.Deadline)
+		if err != nil {
+			return []task.Task{}, fmt.Errorf("failed to scan task: %v", err)
+		}
+		tasks = append(tasks, t)
+	}
+
+	if err = rows.Err(); err != nil {
+		return []task.Task{}, fmt.Errorf("error iterating over rows: %v", err)
+	}
+
+	return tasks, nil
+}
+
+func (t *TaskRepo) GetUserTaskDb(taskStatus task.TaskStatus) (int, task.TaskStatus, error) {
+	var count int
+	query := `select count(*) from tasks where assigned_to=$1 and created_at < $2 and deadline > $3`
+	err := t.db.db.QueryRow(query, taskStatus.Id, taskStatus.Timeline, taskStatus.Timeline).Scan(&count)
+	if err != nil {
+		return count, task.TaskStatus{}, fmt.Errorf("Failed to get Tasks count for user : %v", err)
+	}
+	return count, taskStatus, nil
 }

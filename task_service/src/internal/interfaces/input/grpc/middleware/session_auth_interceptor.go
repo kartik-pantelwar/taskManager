@@ -3,8 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
-
-	pb "task_service/src/internal/interfaces/input/grpc/generated"
+	pb "task_service/src/internal/interfaces/input/grpc/generated/generated"
 )
 
 type SessionAuthMiddleware struct {
