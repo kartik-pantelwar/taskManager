@@ -15,16 +15,16 @@ func NewTaskRepo(d *Database) TaskRepo {
 
 var emptyTask task.Task
 
-func (t *TaskRepo) CreateNewTask(task task.Task) (task.Task, int, error) {
-	var id int
+func (t *TaskRepo) CreateNewTask(task1 task.TaskCreate) (task.Task, int, error) {
 	var count int
+	var createdTask task.Task
 	tx, err := t.db.db.Begin()
 	if err != nil {
 		return emptyTask, count, err
 	}
 	defer tx.Rollback()
 	query := `select count(*) from tasks where assigned_to=$1 and created_at < current_timestamp and current_timestamp < deadline`
-	err = tx.QueryRow(query, task.AssignedTo).Scan(&count)
+	err = tx.QueryRow(query, task1.AssignedTo).Scan(&count)
 	if err != nil {
 		return emptyTask, count, err
 	}
@@ -32,8 +32,18 @@ func (t *TaskRepo) CreateNewTask(task task.Task) (task.Task, int, error) {
 	if count >= 3 {
 		return emptyTask, count, fmt.Errorf("User Already have more than 3 tasks within the deadline")
 	}
-	query = `insert into tasks(name,assigned_to,description,task_status,priority,assigned_by,deadline) values($1,$2,$3,$4,$5,$6,$7) returning id`
-	err = tx.QueryRow(query, task.Name, task.AssignedTo, task.Description, task.TaskStatus, task.Priority, task.AssignedBy, task.Deadline).Scan(&id)
+	query = `insert into tasks(name,assigned_to,description,priority,assigned_by,deadline) values($1,$2,$3,$4,$5,$6) returning id, name, assigned_by, assigned_to, description, task_status, created_at, deadline, priority`
+	err = tx.QueryRow(query, task1.Name, task1.AssignedTo, task1.Description, task1.Priority, task1.AssignedBy, task1.Deadline).Scan(
+		&createdTask.Id,
+		&createdTask.Name,
+		&createdTask.AssignedBy,
+		&createdTask.AssignedTo,
+		&createdTask.Description,
+		&createdTask.TaskStatus,
+		&createdTask.CreatedAt,
+		&createdTask.Deadline,
+		&createdTask.Priority,
+	)
 	if err != nil {
 		return emptyTask, count, err
 	}
@@ -42,8 +52,7 @@ func (t *TaskRepo) CreateNewTask(task task.Task) (task.Task, int, error) {
 		return emptyTask, count, err
 	}
 
-	task.Id = id
-	return task, count, nil
+	return createdTask, count, nil
 }
 
 func (t *TaskRepo) UpdateOldTask(task1 task.Task) (task.Task, error) {

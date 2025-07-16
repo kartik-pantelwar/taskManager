@@ -3,7 +3,7 @@ package task
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log"
 	"strconv"
 	"task_service/src/internal/adaptors/persistance"
@@ -29,7 +29,7 @@ func NewTaskService(taskRepo persistance.TaskRepo, notificationService *notifica
 }
 
 // CreateTask + notification
-func (t *TaskService) CreateTask(ctx context.Context, taskData task.Task, userID int) (task.Task, int, error) {
+func (t *TaskService) CreateTask(ctx context.Context, taskData task.TaskCreate, userID int) (task.Task, int, error) {
 	// Validate if the assigned_to user exists before creating the task
 	if taskData.AssignedTo != 0 {
 		userExistsReq := &pb.ValidateUserRequest{
@@ -38,17 +38,19 @@ func (t *TaskService) CreateTask(ctx context.Context, taskData task.Task, userID
 
 		userExistsResp, err := t.grpcClient.ValidateUser(ctx, userExistsReq)
 		if err != nil {
-			return task.Task{}, 0, fmt.Errorf("failed to validate user: %v", err)
+			log.Printf("Error validating user: %v", err)
+			return task.Task{}, 0, errors.New("Failed to Validate User")
 		}
 
 		if !userExistsResp.Status {
-			return task.Task{}, 0, fmt.Errorf("User does not exist")
+			return task.Task{}, 0, errors.New("User Does Not Exist")
 		}
 	}
 
 	createdTask, count, err := t.taskRepo.CreateNewTask(taskData)
 	if err != nil {
-		return task.Task{}, count, err
+		log.Printf("Error creating task: %v", err)
+		return task.Task{}, count, errors.New("Failed to Create Task")
 	}
 
 	t.publishTaskEvent("task_created", createdTask, userID)
@@ -65,18 +67,20 @@ func (t *TaskService) UpdateTask(ctx context.Context, taskData task.Task, userID
 
 		userExistsResp, err := t.grpcClient.ValidateUser(ctx, userExistsReq)
 		if err != nil {
-			return task.Task{}, fmt.Errorf("failed to validate user: %v", err)
+			log.Printf("Error validating user: %v", err)
+			return task.Task{}, errors.New("Failed to Validate User")
 		}
 
 		if !userExistsResp.Status {
-			return task.Task{}, fmt.Errorf("User does not exist")
+			return task.Task{}, errors.New("User Does Not Exist")
 		}
 	}
 
 	// updation
 	updatedTask, err := t.taskRepo.UpdateOldTask(taskData)
 	if err != nil {
-		return task.Task{}, err
+		log.Printf("Error updating task: %v", err)
+		return task.Task{}, errors.New("Failed to Update Task")
 	}
 
 	// Send notification
@@ -89,13 +93,15 @@ func (t *TaskService) DeleteTask(ctx context.Context, taskID int, userID int) er
 	// getting task details for notifications
 	taskData, err := t.taskRepo.GetTaskByID(taskID)
 	if err != nil {
-		return err
+		log.Printf("Error getting task by ID: %v", err)
+		return errors.New("Task Not Found")
 	}
 
 	// deleting task
 	err = t.taskRepo.DeleteTask(taskID)
 	if err != nil {
-		return err
+		log.Printf("Error deleting task: %v", err)
+		return errors.New("Failed to Delete Task")
 	}
 
 	// Send notification
@@ -105,11 +111,21 @@ func (t *TaskService) DeleteTask(ctx context.Context, taskID int, userID int) er
 
 // created but not used
 func (t *TaskService) GetAllTasks() ([]task.Task, error) {
-	return t.taskRepo.GetAllTask()
+	tasks, err := t.taskRepo.GetAllTask()
+	if err != nil {
+		log.Printf("Error getting all tasks: %v", err)
+		return []task.Task{}, errors.New("Failed to Retrieve Tasks")
+	}
+	return tasks, nil
 }
 
 func (t *TaskService) GetTasksByUserID(userID int) ([]task.Task, error) {
-	return t.taskRepo.GetTasksByUserID(userID)
+	tasks, err := t.taskRepo.GetTasksByUserID(userID)
+	if err != nil {
+		log.Printf("Error getting tasks by user ID: %v", err)
+		return []task.Task{}, errors.New("Failed to Retrieve User Tasks")
+	}
+	return tasks, nil
 }
 
 func (t *TaskService) publishTaskEvent(eventType string, task1 task.Task, userID int) {
@@ -144,6 +160,11 @@ func (t *TaskService) publishTaskEvent(eventType string, task1 task.Task, userID
 
 func (t *TaskService) GetUserTasks(taskStatus task.TaskStatus) (int, task.TaskStatus, error) {
 	var newStatus task.TaskStatus
+
 	count, newStatus, err := t.taskRepo.GetUserTaskDb(taskStatus)
-	return count, newStatus, err
+	if err != nil {
+		log.Printf("Error getting user tasks: %v", err)
+		return 0, newStatus, errors.New("Failed to Retrieve Task Status")
+	}
+	return count, newStatus, nil
 }

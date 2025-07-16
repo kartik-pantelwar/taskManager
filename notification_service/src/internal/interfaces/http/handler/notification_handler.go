@@ -1,10 +1,11 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"notificationservice/src/internal/core/notification"
 	"notificationservice/src/internal/usecase"
+	errorhandling "notificationservice/src/pkg/error_handling"
+	pkgresponse "notificationservice/src/pkg/response"
 	"strconv"
 )
 
@@ -40,20 +41,18 @@ func (h *NotificationHandler) GetRecentNotification(w http.ResponseWriter, r *ht
 	}
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error": "failed to retrieve recent notification",
-		})
+		errorhandling.HandleError(w, "Failed to Retrieve Recent Notification", http.StatusInternalServerError)
 		return
 	}
 
 	// Return single recent notification or null if none exists
 	if notification == nil {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"recent_notification": nil,
-			"message":             "no recent notifications found",
-		})
+		response := pkgresponse.StandardResponse{
+			Status:  "SUCCESS",
+			Message: "No Recent Notifications Found",
+			Data:    nil,
+		}
+		pkgresponse.WriteResponse(w, http.StatusOK, response)
 		return
 	}
 
@@ -68,10 +67,12 @@ func (h *NotificationHandler) GetRecentNotification(w http.ResponseWriter, r *ht
 		"timestamp":   notification.Timestamp,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"recent_notification": transformedNotification,
-	})
+	response := pkgresponse.StandardResponse{
+		Status:  "SUCCESS",
+		Message: "Recent Notification Retrieved Successfully",
+		Data:    transformedNotification,
+	}
+	pkgresponse.WriteResponse(w, http.StatusOK, response)
 }
 
 func (h *NotificationHandler) GetUserNotifications(w http.ResponseWriter, r *http.Request) {
@@ -105,10 +106,7 @@ func (h *NotificationHandler) GetUserNotifications(w http.ResponseWriter, r *htt
 	}
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error": "failed to retrieve notifications",
-		})
+		errorhandling.HandleError(w, "Failed to Retrieve Notifications", http.StatusInternalServerError)
 		return
 	}
 
@@ -126,9 +124,14 @@ func (h *NotificationHandler) GetUserNotifications(w http.ResponseWriter, r *htt
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"notifications": transformedNotifications,
-		"count":         len(transformedNotifications),
-	})
+	response := pkgresponse.StandardResponse{
+		Status:  "SUCCESS",
+		Message: "Notifications Retrieved Successfully",
+		Data: map[string]interface{}{
+			"notifications": transformedNotifications,
+			"count":         len(transformedNotifications),
+			"user_filter":   userIDHeader != "",
+		},
+	}
+	pkgresponse.WriteResponse(w, http.StatusOK, response)
 }

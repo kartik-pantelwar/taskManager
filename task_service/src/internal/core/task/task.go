@@ -26,3 +26,12 @@ type TaskStatus struct {
 	Id       int       `json:"user_id"`
 	Timeline time.Time `json:"timeline"`
 }
+
+type TaskCreate struct {
+	Name        string `json:"name"`
+	AssignedBy  int
+	AssignedTo  int       `json:"assigned_to"`
+	Description string    `json:"description"`
+	Deadline    time.Time `json:"deadline"`
+	Priority    int       `json:"priority"`
+}

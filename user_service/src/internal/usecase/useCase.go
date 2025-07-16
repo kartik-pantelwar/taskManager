@@ -45,13 +45,13 @@ func (u *UserService) LoginUser(requestUser user.UserLogin) (LoginResponse, erro
 	foundUser, err := u.userRepo.GetUser(requestUser.Username)
 	if err != nil {
 		log.Printf("Error: %v", err)
-		return loginResponse, errors.New("Invalid Username!")
+		return loginResponse, errors.New("Invalid Credentials")
 	}
 
 	loginResponse.FounUser = foundUser
 	if err := matchPassword(requestUser, foundUser.Password); err != nil {
 		log.Printf("Error: %v", err)
-		return loginResponse, fmt.Errorf("invalid password")
+		return loginResponse, errors.New("Invalid Credentials")
 	}
 	tokenString, tokenExpire, err := utilities.GenerateJWT(foundUser.Uid)
 	loginResponse.TokenString = tokenString
@@ -59,20 +59,20 @@ func (u *UserService) LoginUser(requestUser user.UserLogin) (LoginResponse, erro
 
 	if err != nil {
 		log.Printf("Error: %v", err)
-		return loginResponse, fmt.Errorf("failed to generate jwt")
+		return loginResponse, errors.New("Failed to Generate Token")
 	}
 
 	session, err := utilities.GenerateSession(foundUser.Uid)
 	loginResponse.Session = session
 	if err != nil {
 		log.Printf("Error: %v", err)
-		return loginResponse, fmt.Errorf("failed to generate session")
+		return loginResponse, errors.New("Failed to Generate Session")
 	}
 
 	err = u.sessionRepo.CreateSession(session)
 	if err != nil {
 		log.Printf("Error: %v", err)
-		return loginResponse, fmt.Errorf("failed to create session")
+		return loginResponse, errors.New("Failed to Create Session")
 	}
 
 	return loginResponse, nil
@@ -84,19 +84,19 @@ func (u *UserService) GetJwtFromSession(sess string) (string, time.Time, error) 
 	session, err := u.sessionRepo.GetSession(sess)
 	if err != nil {
 		log.Printf("Error: %v", err)
-		return tokenString, tokenExpire, err
+		return tokenString, tokenExpire, errors.New("Invalid Session")
 	}
 
 	err = matchSessionToken(sess, session.TokenHash)
 	if err != nil {
 		log.Printf("Error: %v", err)
-		return tokenString, tokenExpire, err
+		return tokenString, tokenExpire, errors.New("Session Token Mismatch")
 	}
 
 	tokenString, tokenExpire, err = utilities.GenerateJWT(session.Uid)
 	if err != nil {
 		log.Printf("Error: %v", err)
-		return tokenString, tokenExpire, err
+		return tokenString, tokenExpire, errors.New("Failed to Generate Token")
 	}
 
 	return tokenString, tokenExpire, nil
@@ -106,7 +106,7 @@ func (u *UserService) GetUserByID(id int) (user.UserProfile, error) {
 	newUser, err := u.userRepo.GetUserByID(id)
 	if err != nil {
 		log.Println("error", err)
-		return user.UserProfile{}, errors.New("something went wrong")
+		return user.UserProfile{}, errors.New("User Not Found")
 	}
 	return newUser, nil
 }
@@ -115,8 +115,9 @@ func (u *UserService) LogoutUser(id int) error {
 	err := u.sessionRepo.DeleteSession(id)
 	if err != nil {
 		log.Printf("Error: %v", err)
+		return errors.New("Failed to Logout User")
 	}
-	return err
+	return nil
 }
 
 func matchPassword(user user.UserLogin, password string) error {
@@ -143,7 +144,7 @@ func (u *UserService) GetAllUsers() ([]user.GetUserResponse, error) {
 	allUsers, err := u.userRepo.GetUsers()
 	if err != nil {
 		log.Printf("Error: %v", err)
-		return []user.GetUserResponse{}, err
+		return []user.GetUserResponse{}, errors.New("Unable to Fetch Users")
 	}
 	return allUsers, nil
 }

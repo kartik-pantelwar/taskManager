@@ -44,17 +44,15 @@ func (u *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-	// var requestUser user.User
 	var loginUser user.UserLogin
 	if err := json.NewDecoder(r.Body).Decode(&loginUser); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		errorhandling.HandleError(w, "Wrong Format Data", http.StatusBadRequest)
 		return
 	}
 
 	loginResponse, err := u.userService.LoginUser(loginUser)
 	if err != nil {
-		errorhandling.HandleError(w, "Unable to Login", http.StatusBadRequest)
+		errorhandling.HandleError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -82,6 +80,10 @@ func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	response := pkgresponse.StandardResponse{
 		Status:  "SUCCESS",
 		Message: "Successful Login",
+		Data: map[string]interface{}{
+			"username": loginResponse.FounUser.Username,
+			"user_id":  loginResponse.FounUser.Uid,
+		},
 	}
 	w.Header().Set("x-user", loginResponse.FounUser.Username)
 	w.Header().Set("x-userId", strconv.Itoa(loginResponse.FounUser.Uid))
@@ -90,40 +92,37 @@ func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 func (u *UserHandler) Profile(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("user").(int)
-	//user ID is fetched by using Context value. We passed context in the Authenticate middleware, which picks the user value and store it is context value, so we can get user ID in any route using context, after using authenticate middleware
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{"error": "user not found in context"})
+		errorhandling.HandleError(w, "User Not Found in Context", http.StatusUnauthorized)
 		return
 	}
 
 	registeredUser, err := u.userService.GetUserByID(userId)
-
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		errorhandling.HandleError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	response := pkgresponse.StandardResponse{
+		Status:  "SUCCESS",
+		Message: "User Profile Retrieved Successfully",
+		Data:    registeredUser,
+	}
 	w.Header().Set("x-user", registeredUser.Username)
 	w.Header().Set("x-userId", strconv.Itoa(registeredUser.Uid))
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(registeredUser)
+	pkgresponse.WriteResponse(w, http.StatusOK, response)
 }
 
 func (u *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("sess")
 	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(err.Error()))
+		errorhandling.HandleError(w, "Session Cookie Not Found", http.StatusUnauthorized)
 		return
 	}
 
 	tokenString, expireTime, err := u.userService.GetJwtFromSession(cookie.Value)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		errorhandling.HandleError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -137,20 +136,23 @@ func (u *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &atCookie)
 
+	response := pkgresponse.StandardResponse{
+		Status:  "SUCCESS",
+		Message: "Token Refreshed Successfully",
+	}
+	pkgresponse.WriteResponse(w, http.StatusOK, response)
 }
 
 func (u *UserHandler) LogOut(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("user").(int)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode((map[string]interface{}{"Error": "user not found in context"}))
+		errorhandling.HandleError(w, "User Not Found in Context", http.StatusUnauthorized)
 		return
 	}
 
 	err := u.userService.LogoutUser(userId)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		errorhandling.HandleError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -175,15 +177,18 @@ func (u *UserHandler) LogOut(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &sessCookie)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Successful Logout"})
+	response := pkgresponse.StandardResponse{
+		Status:  "SUCCESS",
+		Message: "Successful Logout",
+	}
+	pkgresponse.WriteResponse(w, http.StatusOK, response)
 }
 
 func (u *UserHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	allUsers, err := u.userService.GetAllUsers()
 	if err != nil {
-		errorhandling.HandleError(w, "Unable to Get Users", http.StatusInternalServerError)
+		errorhandling.HandleError(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	response := pkgresponse.StandardResponse{
 		Status:  "SUCCESS",

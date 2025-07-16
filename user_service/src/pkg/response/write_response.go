@@ -18,7 +18,7 @@ func WriteResponse(w http.ResponseWriter, statuscode int, resp StandardResponse)
 	w.WriteHeader(statuscode)
 	err := json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		http.Error(w, "Error :", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	} else {
 		// ^Terminal Logging
 		fmt.Print("\n")
