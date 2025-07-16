@@ -130,7 +130,7 @@ func (h *NotificationHandler) GetUserNotifications(w http.ResponseWriter, r *htt
 		Data: map[string]interface{}{
 			"notifications": transformedNotifications,
 			"count":         len(transformedNotifications),
-			"user_filter":   userIDHeader != "",
+			// "user_filter":   userIDHeader != "",
 		},
 	}
 	pkgresponse.WriteResponse(w, http.StatusOK, response)

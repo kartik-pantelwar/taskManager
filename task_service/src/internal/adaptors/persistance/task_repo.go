@@ -84,9 +84,16 @@ func (t *TaskRepo) UpdateOldTask(task1 task.Task) (task.Task, error) {
 	if task1.Deadline.IsZero() {
 		task1.Deadline = existingTask.Deadline
 	}
-	query := `update tasks set name=$1, description=$2, task_status=$3, priority=$4, deadline=$5 where id=$6`
+	query := `update tasks set name=$1, description=$2, task_status=$3, priority=$4, deadline=$5 where id=$6 returning name, description, task_status, priority, deadline, created_at`
 	//for this, before writing query, check in task struct, if any field is empty, then do not add it into the query.
-	_, err = t.db.db.Exec(query, task1.Name, task1.Description, task1.TaskStatus, task1.Priority, task1.Deadline, task1.Id)
+	err = t.db.db.QueryRow(query, task1.Name, task1.Description, task1.TaskStatus, task1.Priority, task1.Deadline, task1.Id).Scan(
+		&task1.Name,
+		&task1.Description,
+		&task1.TaskStatus,
+		&task1.Priority,
+		&task1.Deadline,
+		&task1.CreatedAt,
+	)
 	if err != nil {
 		return emptyTask, err
 	}

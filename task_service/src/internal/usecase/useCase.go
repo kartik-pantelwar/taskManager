@@ -161,6 +161,23 @@ func (t *TaskService) publishTaskEvent(eventType string, task1 task.Task, userID
 func (t *TaskService) GetUserTasks(taskStatus task.TaskStatus) (int, task.TaskStatus, error) {
 	var newStatus task.TaskStatus
 
+	// Validate if the user exists before getting their task count
+	if taskStatus.Id != 0 {
+		userExistsReq := &pb.ValidateUserRequest{
+			UserId: strconv.Itoa(taskStatus.Id),
+		}
+
+		userExistsResp, err := t.grpcClient.ValidateUser(context.Background(), userExistsReq)
+		if err != nil {
+			log.Printf("Error validating user: %v", err)
+			return 0, newStatus, errors.New("Failed to Validate User")
+		}
+
+		if !userExistsResp.Status {
+			return 0, newStatus, errors.New("User Does Not Exist")
+		}
+	}
+
 	count, newStatus, err := t.taskRepo.GetUserTaskDb(taskStatus)
 	if err != nil {
 		log.Printf("Error getting user tasks: %v", err)

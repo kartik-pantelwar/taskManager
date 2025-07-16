@@ -152,7 +152,10 @@ func (t *TaskHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	taskCount, newStatus, err := t.taskService.GetUserTasks(taskStatus)
-	if err != nil {
+	if err != nil && err.Error() == "User Does Not Exist" {
+		errorhandling.HandleError(w, "User does not exist", http.StatusInternalServerError)
+		return
+	} else if err != nil {
 		errorhandling.HandleError(w, "Failed to Get Tasks Status", http.StatusInternalServerError)
 		return
 	}

@@ -63,7 +63,9 @@ func (uc *NotificationUseCase) GetMostRecentNotification(ctx context.Context) (*
 		return nil, nil
 	}
 
-	// Just return the first notification found (no complex sorting)
+	var mostRecentNotification *notification.Notification
+
+	// Find the most recent notification globally
 	for _, key := range keys {
 		notificationJSON, err := uc.redisClient.GetNotification(ctx, key)
 		if err != nil {
@@ -76,10 +78,13 @@ func (uc *NotificationUseCase) GetMostRecentNotification(ctx context.Context) (*
 			continue
 		}
 
-		return &notif, nil
+		// If this is the first notification, or if this notification is more recent
+		if mostRecentNotification == nil || notif.Timestamp.After(mostRecentNotification.Timestamp) {
+			mostRecentNotification = &notif
+		}
 	}
 
-	return nil, nil
+	return mostRecentNotification, nil
 }
 
 func (uc *NotificationUseCase) GetAllNotifications(ctx context.Context, limit int) ([]notification.Notification, error) {
@@ -148,7 +153,9 @@ func (uc *NotificationUseCase) GetMyRecentNotification(ctx context.Context, assi
 		return nil, fmt.Errorf("failed to get notification keys: %v", err)
 	}
 
-	// Simple search - return first match found (no complex sorting)
+	var mostRecentNotification *notification.Notification
+
+	// Find the most recent notification where assignedBy matches
 	for _, key := range keys {
 		notificationJSON, err := uc.redisClient.GetNotification(ctx, key)
 		if err != nil {
@@ -161,13 +168,16 @@ func (uc *NotificationUseCase) GetMyRecentNotification(ctx context.Context, assi
 			continue
 		}
 
-		// Return first notification where assignedBy matches
+		// Check if this notification is from the logged-in user (assignedBy)
 		if notif.AssignedBy == assignedBy {
-			return &notif, nil
+			// If this is the first match, or if this notification is more recent
+			if mostRecentNotification == nil || notif.Timestamp.After(mostRecentNotification.Timestamp) {
+				mostRecentNotification = &notif
+			}
 		}
 	}
 
-	return nil, nil
+	return mostRecentNotification, nil
 }
 
 func (uc *NotificationUseCase) generateMessage(action, taskName string, assignedTo int) string {
